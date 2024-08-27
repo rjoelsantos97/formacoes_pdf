@@ -2,21 +2,15 @@ import streamlit as st
 import pandas as pd
 from PyPDF2 import PdfReader, PdfWriter
 import re
-from difflib import SequenceMatcher
+from difflib import get_close_matches
 import os
 import zipfile
 from io import BytesIO
 
-# Função para encontrar o nome mais próximo no mapa usando SequenceMatcher para maior precisão
+# Função para encontrar o nome mais próximo no mapa usando get_close_matches para maior flexibilidade
 def find_best_match_sequence(name, valid_employee_names):
-    best_match = None
-    highest_ratio = 0
-    for employee_name in valid_employee_names:
-        ratio = SequenceMatcher(None, name, employee_name).ratio()
-        if ratio > highest_ratio:
-            highest_ratio = ratio
-            best_match = employee_name
-    return best_match if highest_ratio > 0.6 else None  # Usar cutoff de 0.6 para considerar correspondências aproximadas
+    matches = get_close_matches(name, valid_employee_names, n=1, cutoff=0.6)
+    return matches[0] if matches else None
 
 # Função para salvar cada página como um PDF separado
 def save_certificate(pdf_reader, page_number, output_path):
@@ -59,8 +53,8 @@ if mapa_file and pdf_files:
         # Loop para extrair nomes e dividir os certificados
         for i in range(len(reader.pages)):
             text = reader.pages[i].extract_text().strip()
-            # Ajustar a regex para capturar apenas o nome do funcionário
-            name_pattern = re.compile(r"Certifica-se que ([A-Z][a-z]+(?: [A-Z][a-z]+)+)")
+            # Regex para capturar o nome do funcionário
+            name_pattern = re.compile(r"Certifica-se que ([A-Z][a-zA-Z ]+)")
             match = name_pattern.search(text)
 
             if match:
@@ -77,6 +71,8 @@ if mapa_file and pdf_files:
                         certificates[client_name] = []
                     certificates[client_name].append(output_path)
                     st.write(f"Arquivo adicionado para {client_name}: {output_path}")
+                else:
+                    st.write(f"Nome não encontrado no mapa: {employee_name}")
 
     # Exibir links para download dos PDFs individuais
     st.success("Processo concluído! Baixe os certificados abaixo.")
