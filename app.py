@@ -48,12 +48,13 @@ if mapa_file and pdf_files:
     if not os.path.exists(temp_dir):
         os.makedirs(temp_dir)
 
+    certificates = {}
+
     # Processar cada PDF carregado
     for pdf_file in pdf_files:
         reader = PdfReader(pdf_file)
 
         # Loop para extrair nomes e dividir os certificados
-        certificates = {}
         for i in range(len(reader.pages)):
             text = reader.pages[i].extract_text().strip()
             name_pattern = re.compile(r"Certifica-se que (.+)")
