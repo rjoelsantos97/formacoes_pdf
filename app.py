@@ -4,6 +4,8 @@ from PyPDF2 import PdfReader, PdfWriter
 import re
 from difflib import SequenceMatcher
 import os
+import zipfile
+from io import BytesIO
 
 # Função para encontrar o nome mais próximo no mapa usando SequenceMatcher para maior precisão
 def find_best_match_sequence(name, valid_employee_names):
@@ -27,7 +29,7 @@ def save_certificate(pdf_reader, page_number, output_path):
 # Configuração da página do Streamlit
 st.title("Divisão de Certificados PDF por Funcionário")
 
-# Upload do arquivo Excel com o mapa cliente_funcionario
+# Upload do arquivo Excel com o mapa cliente_funcionário
 mapa_file = st.file_uploader("Carregar o arquivo Excel com o Mapa Cliente-Funcionário", type="xlsx")
 
 # Upload de múltiplos arquivos PDF
@@ -42,9 +44,9 @@ if mapa_file and pdf_files:
     valid_employee_names = mapa_df['Formando'].dropna().unique()
 
     # Diretório temporário para salvar os PDFs divididos
-    output_dir = 'certificados_divididos/'
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
+    temp_dir = 'temp_certificates/'
+    if not os.path.exists(temp_dir):
+        os.makedirs(temp_dir)
 
     # Processar cada PDF carregado
     for pdf_file in pdf_files:
@@ -64,16 +66,26 @@ if mapa_file and pdf_files:
                     client_name = mapa_df[mapa_df['Formando'] == best_match_name]['Cliente'].values[0].strip()
                     date = "25-06-2024"  # Pode-se ajustar para extrair dinamicamente, se necessário
                     file_name = f"{client_name}_{best_match_name}_{date}.pdf".replace(" ", "_")
-                    certificates[file_name] = i
+                    output_path = os.path.join(temp_dir, file_name)
+                    save_certificate(reader, i, output_path)
+                    if client_name not in certificates:
+                        certificates[client_name] = []
+                    certificates[client_name].append(output_path)
 
-        # Salvar os certificados divididos
-        for file_name, page_number in certificates.items():
-            save_certificate(reader, page_number, output_dir + file_name)
+    # Criar o arquivo ZIP
+    zip_buffer = BytesIO()
+    with zipfile.ZipFile(zip_buffer, "w") as zf:
+        for client_name, files in certificates.items():
+            for file_path in files:
+                zf.write(file_path, os.path.basename(file_path))
 
-    # Listar os arquivos gerados para download
-    st.success(f"Processo concluído! Os certificados foram salvos na pasta '{output_dir}'.")
+    zip_buffer.seek(0)
 
-    # Exibir links para download dos arquivos gerados
-    for file_name in os.listdir(output_dir):
-        st.markdown(f"[{file_name}](./{output_dir}{file_name})")
-
+    # Fornecer o arquivo ZIP para download
+    st.success("Processo concluído! Baixe os certificados abaixo.")
+    st.download_button(
+        label="Baixar Arquivo ZIP",
+        data=zip_buffer,
+        file_name="certificados.zip",
+        mime="application/zip"
+    )
