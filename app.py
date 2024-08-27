@@ -80,27 +80,13 @@ if mapa_file and pdf_files:
                 else:
                     st.write(f"Nome não encontrado no mapa: {employee_name}")
 
-    # Exibir links para download dos PDFs individuais
-    st.success("Processo concluído! Baixe os certificados abaixo.")
-    
-    for client_name, files in certificates.items():
-        st.write(f"**{client_name}**")
-        for file_path in files:
-            with open(file_path, "rb") as file:
-                st.download_button(
-                    label=f"Baixar {os.path.basename(file_path)}",
-                    data=file,
-                    file_name=os.path.basename(file_path),
-                    mime="application/pdf"
-                )
-
-    # Criar o arquivo ZIP
+    # Criar o arquivo ZIP com pastas para cada cliente
     zip_buffer = BytesIO()
     with zipfile.ZipFile(zip_buffer, "w") as zf:
         for client_name, files in certificates.items():
             for file_path in files:
-                st.write(f"Adicionando ao ZIP: {file_path}")
-                zf.write(file_path, os.path.basename(file_path))
+                # Adicionar cada arquivo PDF à sua respectiva pasta no ZIP
+                zf.write(file_path, os.path.join(client_name, os.path.basename(file_path)))
 
     zip_buffer.seek(0)
 
