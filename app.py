@@ -59,7 +59,8 @@ if mapa_file and pdf_files:
         # Loop para extrair nomes e dividir os certificados
         for i in range(len(reader.pages)):
             text = reader.pages[i].extract_text().strip()
-            name_pattern = re.compile(r"Certifica-se que (.+)")
+            # Ajustar a regex para capturar apenas o nome do funcionário
+            name_pattern = re.compile(r"Certifica-se que ([A-Z][a-z]+(?: [A-Z][a-z]+)+)")
             match = name_pattern.search(text)
 
             if match:
