@@ -2,15 +2,10 @@ import streamlit as st
 import pandas as pd
 from PyPDF2 import PdfReader, PdfWriter
 import re
-from difflib import get_close_matches
 import os
 import zipfile
 from io import BytesIO
-
-# Função para encontrar o nome mais próximo no mapa usando get_close_matches para maior flexibilidade
-def find_best_match_sequence(name, valid_employee_names):
-    matches = get_close_matches(name, valid_employee_names, n=1, cutoff=0.6)
-    return matches[0] if matches else None
+from difflib import SequenceMatcher
 
 # Função para salvar cada página como um PDF separado
 def save_certificate(pdf_reader, page_number, output_path):
@@ -19,7 +14,17 @@ def save_certificate(pdf_reader, page_number, output_path):
     
     with open(output_path, 'wb') as output_pdf:
         pdf_writer.write(output_pdf)
-    st.write(f"Arquivo salvo: {output_path}")
+
+# Função para encontrar o nome mais próximo no mapa usando SequenceMatcher para maior precisão
+def find_best_match_sequence(name, valid_employee_names):
+    best_match = None
+    highest_ratio = 0
+    for employee_name in valid_employee_names:
+        ratio = SequenceMatcher(None, name, employee_name).ratio()
+        if ratio > highest_ratio:
+            highest_ratio = ratio
+            best_match = employee_name
+    return best_match if highest_ratio > 0.6 else None
 
 # Configuração da página do Streamlit
 st.title("Divisão de Certificados PDF por Funcionário")
@@ -53,17 +58,17 @@ if mapa_file and pdf_files:
         # Loop para extrair nomes e dividir os certificados
         for i in range(len(reader.pages)):
             text = reader.pages[i].extract_text().strip()
-            # Regex para capturar o nome do funcionário
             name_pattern = re.compile(r"Certifica-se que ([A-Z][a-zA-Z ]+)")
             match = name_pattern.search(text)
 
             if match:
+                # Capturar apenas o nome do funcionário
                 employee_name = match.group(1).strip()
                 st.write(f"Nome encontrado: {employee_name}")
                 best_match_name = find_best_match_sequence(employee_name, valid_employee_names)
                 if best_match_name:
                     client_name = mapa_df[mapa_df['Formando'] == best_match_name]['Cliente'].values[0].strip()
-                    date = "25-06-2024"  # Pode-se ajustar para extrair dinamicamente, se necessário
+                    date = "25-06-2024"  # Data fixa para este exemplo
                     file_name = f"{client_name}_{best_match_name}_{date}.pdf".replace(" ", "_")
                     output_path = os.path.join(temp_dir, file_name)
                     save_certificate(reader, i, output_path)
