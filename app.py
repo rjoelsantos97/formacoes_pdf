@@ -25,6 +25,7 @@ def save_certificate(pdf_reader, page_number, output_path):
     
     with open(output_path, 'wb') as output_pdf:
         pdf_writer.write(output_pdf)
+    st.write(f"Arquivo salvo: {output_path}")
 
 # Configuração da página do Streamlit
 st.title("Divisão de Certificados PDF por Funcionário")
@@ -53,6 +54,7 @@ if mapa_file and pdf_files:
     # Processar cada PDF carregado
     for pdf_file in pdf_files:
         reader = PdfReader(pdf_file)
+        st.write(f"Processando arquivo: {pdf_file.name}")
 
         # Loop para extrair nomes e dividir os certificados
         for i in range(len(reader.pages)):
@@ -62,6 +64,7 @@ if mapa_file and pdf_files:
 
             if match:
                 employee_name = match.group(1).strip()
+                st.write(f"Nome encontrado: {employee_name}")
                 best_match_name = find_best_match_sequence(employee_name, valid_employee_names)
                 if best_match_name:
                     client_name = mapa_df[mapa_df['Formando'] == best_match_name]['Cliente'].values[0].strip()
@@ -72,6 +75,7 @@ if mapa_file and pdf_files:
                     if client_name not in certificates:
                         certificates[client_name] = []
                     certificates[client_name].append(output_path)
+                    st.write(f"Arquivo adicionado para {client_name}: {output_path}")
 
     # Exibir links para download dos PDFs individuais
     st.success("Processo concluído! Baixe os certificados abaixo.")
@@ -92,6 +96,7 @@ if mapa_file and pdf_files:
     with zipfile.ZipFile(zip_buffer, "w") as zf:
         for client_name, files in certificates.items():
             for file_path in files:
+                st.write(f"Adicionando ao ZIP: {file_path}")
                 zf.write(file_path, os.path.basename(file_path))
 
     zip_buffer.seek(0)
