@@ -73,6 +73,20 @@ if mapa_file and pdf_files:
                         certificates[client_name] = []
                     certificates[client_name].append(output_path)
 
+    # Exibir links para download dos PDFs individuais
+    st.success("Processo concluído! Baixe os certificados abaixo.")
+    
+    for client_name, files in certificates.items():
+        st.write(f"**{client_name}**")
+        for file_path in files:
+            with open(file_path, "rb") as file:
+                st.download_button(
+                    label=f"Baixar {os.path.basename(file_path)}",
+                    data=file,
+                    file_name=os.path.basename(file_path),
+                    mime="application/pdf"
+                )
+
     # Criar o arquivo ZIP
     zip_buffer = BytesIO()
     with zipfile.ZipFile(zip_buffer, "w") as zf:
@@ -83,9 +97,8 @@ if mapa_file and pdf_files:
     zip_buffer.seek(0)
 
     # Fornecer o arquivo ZIP para download
-    st.success("Processo concluído! Baixe os certificados abaixo.")
     st.download_button(
-        label="Baixar Arquivo ZIP",
+        label="Baixar Todos em ZIP",
         data=zip_buffer,
         file_name="certificados.zip",
         mime="application/zip"
