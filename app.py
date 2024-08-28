@@ -74,6 +74,12 @@ if mapa_file and pdf_files:
                         date = "25-06-2024"  # Data fixa para este exemplo
                         file_name = f"{client_name}_{best_match_name}_{date}.pdf".replace(" ", "_")
                         output_path = os.path.join(temp_dir, file_name)
+                        
+                        # Verificar se já existe um certificado para este funcionário
+                        if client_name in certificates and file_name in [os.path.basename(f) for f in certificates[client_name]]:
+                            st.write(f"Certificado já existente para {employee_name}, ignorando duplicata.")
+                            continue
+
                         save_certificate(reader, i, output_path)
                         if client_name not in certificates:
                             certificates[client_name] = []
