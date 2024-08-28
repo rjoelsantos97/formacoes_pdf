@@ -6,6 +6,7 @@ import os
 import zipfile
 from io import BytesIO
 from difflib import SequenceMatcher
+from PyPDF2.errors import PdfReadError
 
 # Função para salvar cada página como um PDF separado
 def save_certificate(pdf_reader, page_number, output_path):
@@ -52,33 +53,37 @@ if mapa_file and pdf_files:
 
     # Processar cada PDF carregado
     for pdf_file in pdf_files:
-        reader = PdfReader(pdf_file)
-        st.write(f"Processando arquivo: {pdf_file.name}")
+        try:
+            reader = PdfReader(pdf_file)
+            st.write(f"Processando arquivo: {pdf_file.name}")
 
-        # Loop para extrair nomes e dividir os certificados
-        for i in range(len(reader.pages)):
-            text = reader.pages[i].extract_text().strip()
-            # Ajustar a regex para capturar nomes até encontrar "natural", "nascido", ou outras palavras indicativas
-            name_pattern = re.compile(r"Certifica-se que ([A-ZÀ-ÖØ-öø-ÿa-zà-öø-ÿ\s]+)")
-            match = name_pattern.search(text)
+            # Loop para extrair nomes e dividir os certificados
+            for i in range(len(reader.pages)):
+                text = reader.pages[i].extract_text().strip()
+                # Ajustar a regex para capturar nomes até encontrar "natural", "nascido", ou outras palavras indicativas
+                name_pattern = re.compile(r"Certifica-se que ([A-ZÀ-ÖØ-öø-ÿa-zà-öø-ÿ\s]+)")
+                match = name_pattern.search(text)
 
-            if match:
-                # Capturar apenas o nome do funcionário e ignorar partes extras
-                employee_name = match.group(1).split('natural')[0].split('nascido')[0].strip()
-                st.write(f"Nome encontrado: {employee_name}")
-                best_match_name = find_best_match_sequence(employee_name, valid_employee_names)
-                if best_match_name:
-                    client_name = mapa_df[mapa_df['Formando'] == best_match_name]['Cliente'].values[0].strip()
-                    date = "25-06-2024"  # Data fixa para este exemplo
-                    file_name = f"{client_name}_{best_match_name}_{date}.pdf".replace(" ", "_")
-                    output_path = os.path.join(temp_dir, file_name)
-                    save_certificate(reader, i, output_path)
-                    if client_name not in certificates:
-                        certificates[client_name] = []
-                    certificates[client_name].append(output_path)
-                    st.write(f"Arquivo adicionado para {client_name}: {output_path}")
-                else:
-                    st.write(f"Nome não encontrado no mapa: {employee_name}")
+                if match:
+                    # Capturar apenas o nome do funcionário e ignorar partes extras
+                    employee_name = match.group(1).split('natural')[0].split('nascido')[0].strip()
+                    st.write(f"Nome encontrado: {employee_name}")
+                    best_match_name = find_best_match_sequence(employee_name, valid_employee_names)
+                    if best_match_name:
+                        client_name = mapa_df[mapa_df['Formando'] == best_match_name]['Cliente'].values[0].strip()
+                        date = "25-06-2024"  # Data fixa para este exemplo
+                        file_name = f"{client_name}_{best_match_name}_{date}.pdf".replace(" ", "_")
+                        output_path = os.path.join(temp_dir, file_name)
+                        save_certificate(reader, i, output_path)
+                        if client_name not in certificates:
+                            certificates[client_name] = []
+                        certificates[client_name].append(output_path)
+                        st.write(f"Arquivo adicionado para {client_name}: {output_path}")
+                    else:
+                        st.write(f"Nome não encontrado no mapa: {employee_name}")
+
+        except PdfReadError:
+            st.error(f"O arquivo {pdf_file.name} está criptografado e não pode ser processado.")
 
     # Criar o arquivo ZIP com pastas para cada cliente
     zip_buffer = BytesIO()
