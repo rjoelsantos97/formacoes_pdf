@@ -72,13 +72,10 @@ if mapa_file and pdf_files:
                     if best_match_name:
                         client_name = mapa_df[mapa_df['Formando'] == best_match_name]['Cliente'].values[0].strip()
                         date = "25-06-2024"  # Data fixa para este exemplo
-                        file_name = f"{client_name}_{best_match_name}_{date}.pdf".replace(" ", "_")
+                        # Adicionando um índice ao nome do arquivo para diferenciar múltiplos certificados
+                        index = len(certificates.get(client_name, [])) + 1
+                        file_name = f"{client_name}_{best_match_name}_{date}_{index}.pdf".replace(" ", "_")
                         output_path = os.path.join(temp_dir, file_name)
-                        
-                        # Verificar se já existe um certificado para este funcionário
-                        if client_name in certificates and file_name in [os.path.basename(f) for f in certificates[client_name]]:
-                            st.write(f"Certificado já existente para {employee_name}, ignorando duplicata.")
-                            continue
 
                         save_certificate(reader, i, output_path)
                         if client_name not in certificates:
